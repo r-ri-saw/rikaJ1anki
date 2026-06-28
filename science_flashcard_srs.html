@@ -1,0 +1,364 @@
+
+<style>
+  .card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+  .btn { cursor: pointer; border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 0.5rem 1rem; background: transparent; color: var(--text-primary); font-size: 14px; font-family: var(--font-sans); }
+  .btn:hover { background: var(--surface-1); }
+  .btn-lg { padding: 0.75rem 1.25rem; font-size: 15px; border-radius: 8px; }
+  .answer-btn { border-radius: 8px; padding: 0.75rem; font-size: 14px; font-weight: 500; cursor: pointer; border: 0.5px solid; font-family: var(--font-sans); width: 100%; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: var(--radius); border: 0.5px solid; display: inline-block; }
+  .progress-bar { height: 4px; border-radius: 2px; background: var(--surface-1); overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; background: var(--fill-accent); transition: width 0.3s; }
+  #home, #study, #stats { display: none; }
+  select { border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 0.4rem 0.6rem; background: var(--surface-2); color: var(--text-primary); font-size: 13px; font-family: var(--font-sans); }
+</style>
+
+<h2 class="sr-only">中学1年 理科 スペースドリピティション暗記カード</h2>
+
+<div id="home">
+  <div style="margin-bottom:1rem; display:flex; align-items:center; justify-content:space-between;">
+    <h2 style="margin:0; font-size:18px; font-weight:500;">理科 暗記カード</h2>
+    <button class="btn" onclick="showStats()"><i class="ti ti-chart-bar" aria-hidden="true"></i> 成績</button>
+  </div>
+
+  <div class="card" style="margin-bottom:0.75rem;">
+    <div style="font-size:13px; color:var(--text-secondary); margin-bottom:0.75rem;">単元を選ぶ</div>
+    <select id="chapter-select" style="width:100%; margin-bottom:1rem;">
+      <option value="all">すべての単元</option>
+      <option value="生命">生命（植物・動物）</option>
+      <option value="地球">地球（大地・地震・火山）</option>
+      <option value="物質">物質（物質・気体・水溶液）</option>
+      <option value="エネルギー">エネルギー（光・音・力）</option>
+    </select>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <button class="btn btn-lg" onclick="startStudy('due')" style="flex:1; border-color:var(--border-accent); color:var(--text-accent);">
+        <i class="ti ti-calendar" aria-hidden="true"></i> 今日の復習 <span id="due-count" style="font-weight:500;"></span>
+      </button>
+      <button class="btn btn-lg" onclick="startStudy('all')" style="flex:1;">
+        <i class="ti ti-cards" aria-hidden="true"></i> 全問題
+      </button>
+    </div>
+  </div>
+
+  <div id="stats-mini" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;"></div>
+</div>
+
+<div id="study">
+  <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+    <button class="btn" onclick="showHome()" aria-label="ホームへ戻る"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <div class="progress-bar" style="flex:1;"><div class="progress-fill" id="progress-fill"></div></div>
+    <span style="font-size:13px; color:var(--text-secondary);" id="progress-text"></span>
+  </div>
+
+  <div class="card" id="question-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <span id="chapter-tag" class="tag"></span>
+      <span style="font-size:12px; color:var(--text-muted);" id="interval-info"></span>
+    </div>
+    <div style="font-size:15px; line-height:1.8; color:var(--text-primary);" id="question-text"></div>
+  </div>
+
+  <div id="show-answer-area" style="text-align:center; padding:1rem 0;">
+    <button class="btn btn-lg" onclick="revealAnswer()" style="min-width:200px;">
+      答えを確認する <i class="ti ti-eye" aria-hidden="true"></i>
+    </button>
+    <p style="font-size:13px; color:var(--text-muted); margin-top:0.75rem;">紙に書いてから確認しよう</p>
+  </div>
+
+  <div id="answer-area" style="display:none;">
+    <div class="card" style="border-color:var(--border-accent);">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:0.5rem;">正解</div>
+      <div style="font-size:16px; font-weight:500; color:var(--text-accent); line-height:1.8;" id="answer-text"></div>
+    </div>
+    <div style="font-size:13px; color:var(--text-secondary); text-align:center; margin-bottom:0.75rem;">自分の答えと比べてどうでしたか？</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+      <button class="answer-btn" onclick="rate(0)" style="background:var(--bg-danger); color:var(--text-danger); border-color:var(--border-danger);">
+        <i class="ti ti-x" aria-hidden="true"></i><br>わからない<br><span style="font-size:11px; font-weight:400;">もう一度</span>
+      </button>
+      <button class="answer-btn" onclick="rate(3)" style="background:var(--bg-warning); color:var(--text-warning); border-color:var(--border-warning);">
+        <i class="ti ti-minus" aria-hidden="true"></i><br>もう少し<br><span style="font-size:11px; font-weight:400;">明日</span>
+      </button>
+      <button class="answer-btn" onclick="rate(5)" style="background:var(--bg-success); color:var(--text-success); border-color:var(--border-success);">
+        <i class="ti ti-check" aria-hidden="true"></i><br>覚えた<br><span style="font-size:11px; font-weight:400;">数日後</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="stats">
+  <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+    <button class="btn" onclick="showHome()" aria-label="ホームへ戻る"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <span style="font-size:16px; font-weight:500;">成績</span>
+  </div>
+  <div id="stats-detail"></div>
+</div>
+
+<script>
+const CARDS = [
+  {id:1,ch:"生命",q:"生物を共通する【　】やちがいに注目してなかま分けし、整理することを【　】という。",a:"特徴 / 分類"},
+  {id:2,ch:"生命",q:"花の外側から、がく、【　】、【　】、【　】の順についている。",a:"花弁 / おしべ / めしべ"},
+  {id:3,ch:"生命",q:"おしべの先の袋を【　】といい、中には花粉が入っている。",a:"やく"},
+  {id:4,ch:"生命",q:"めしべの根もとのふくらんだ部分を【　】、その中の粒を【　】という。",a:"子房 / 胚珠"},
+  {id:5,ch:"生命",q:"胚珠が子房の中にある植物を【　】という。",a:"被子植物"},
+  {id:6,ch:"生命",q:"花弁が1枚1枚離れている花を【　】、たがいにくっついている花を【　】という。",a:"離弁花 / 合弁花"},
+  {id:7,ch:"生命",q:"花粉がめしべの柱頭につくことを【　】という。やがて子房は【　】に、胚珠は【　】になる。",a:"受粉 / 果実 / 種子"},
+  {id:8,ch:"生命",q:"マツの雌花のりん片には【　】がなく、胚珠が【　】である。",a:"子房 / むきだし"},
+  {id:9,ch:"生命",q:"マツのような胚珠がむきだしの植物のなかまを【　】という。",a:"裸子植物"},
+  {id:10,ch:"生命",q:"被子植物のうち、子葉が1枚→【　】類、2枚→【　】類という。",a:"単子葉 / 双子葉"},
+  {id:11,ch:"生命",q:"葉の表面にあるすじのようなつくりを【　】という。単子葉類→【　】、双子葉類→【　】",a:"葉脈 / 平行脈 / 網状脈"},
+  {id:12,ch:"生命",q:"双子葉類の根は【　】という1本の太い根と、そこから枝分かれする【　】がある。",a:"主根 / 側根"},
+  {id:13,ch:"生命",q:"単子葉類のたくさんの細い根を【　】という。",a:"ひげ根"},
+  {id:14,ch:"生命",q:"根の先端近くには、小さな毛のような【　】が多く生えている。",a:"根毛"},
+  {id:15,ch:"生命",q:"種子をつくらない植物は、【　】の中でつくられる【　】でふえる。",a:"胞子のう / 胞子"},
+  {id:16,ch:"生命",q:"イヌワラビやゼンマイなどの【　】植物には、葉・茎・根の区別がある。",a:"シダ"},
+  {id:17,ch:"生命",q:"ゼニゴケやスギゴケなどの【　】植物には、葉・茎・根の区別がない。根のように見える部分を【　】という。",a:"コケ / 仮根"},
+  {id:18,ch:"生命",q:"肉食動物は獲物をとらえる【　】と皮膚や肉をさいて骨をくだく【　】が発達している。",a:"犬歯 / 臼歯"},
+  {id:19,ch:"生命",q:"体を支える【　】として背骨をもつ動物を【　】動物という。",a:"骨格 / 脊椎"},
+  {id:20,ch:"生命",q:"親が卵を産み卵から子がかえる生まれ方を【　】、子が母親の子宮内で育つ生まれ方を【　】という。",a:"卵生 / 胎生"},
+  {id:21,ch:"生命",q:"脊椎動物をメダカなどの【　】類、イモリなどの【　】類、カナヘビなどの【　】類、ハトなどの【　】類、ウサギなどの【　】類に分類できる。",a:"魚 / 両生 / は虫 / 鳥 / 哺乳"},
+  {id:22,ch:"生命",q:"背骨をもたない動物を【　】動物という。",a:"無脊椎"},
+  {id:23,ch:"生命",q:"バッタやエビ、クモなどの体の外側はかたい殻のような【　】でおおわれている。",a:"外骨格"},
+  {id:24,ch:"生命",q:"外骨格をもち、体に多くの節がある動物を【　】動物という。",a:"節足"},
+  {id:25,ch:"生命",q:"トンボやカブトムシなどのなかまを【　】類という。胸部や腹部の【　】から空気をとり入れて呼吸する。",a:"昆虫 / 気門"},
+  {id:26,ch:"生命",q:"イカやマイマイ、アサリなど、背骨や節がなく、内臓が【　】でおおわれている動物のなかまを【　】動物という。",a:"外とう膜 / 軟体"},
+  {id:27,ch:"地球",q:"地球の表面をおおっている厚さ数10〜約100 kmの板状の岩石のかたまりを【　】という。",a:"プレート"},
+  {id:28,ch:"地球",q:"大地が盛り上がることを【　】、大地が沈むことを【　】という。",a:"隆起 / 沈降"},
+  {id:29,ch:"地球",q:"大地が波打つように曲がったものを【　】、大地が割れて動いたときにできるずれを【　】という。",a:"しゅう曲 / 断層"},
+  {id:30,ch:"地球",q:"地層や岩石が地表に現れている崖などを【　】という。",a:"露頭"},
+  {id:31,ch:"地球",q:"れき・砂・泥は粒の【　】によって区別される。",a:"大きさ"},
+  {id:32,ch:"地球",q:"最初に岩石が破壊された場所を【　】といい、その真上の地表の位置を【　】という。",a:"震源 / 震央"},
+  {id:33,ch:"地球",q:"最初の小さなゆれを【　】、続いてはじまる大きなゆれを【　】という。",a:"初期微動 / 主要動"},
+  {id:34,ch:"地球",q:"初期微動がはじまってから主要動がはじまるまでの時間を【　】という。震源距離が長いほど【　】なる。",a:"初期微動継続時間 / 長く"},
+  {id:35,ch:"地球",q:"初期微動を伝える波を【　】波、主要動を伝える波を【　】波という。",a:"P / S"},
+  {id:36,ch:"地球",q:"地震のゆれの大きさは【　】で表される。0〜7の10段階。地震そのものの規模は【　】で表す。",a:"震度 / マグニチュード"},
+  {id:37,ch:"地球",q:"海溝やトラフ付近で起こる地震では、海底の急激な変形が起こると高い波（【　】）が発生することがある。",a:"津波"},
+  {id:38,ch:"地球",q:"火山が噴火したとき、火口から噴出する溶岩や火山灰、火山弾、軽石などを【　】という。",a:"火山噴出物"},
+  {id:39,ch:"地球",q:"上昇してきたマグマが地下に一時的にたくわえられたところを【　】という。",a:"マグマだまり"},
+  {id:40,ch:"地球",q:"マグマが冷えてできた一定の形や色をした結晶を【　】という。",a:"鉱物"},
+  {id:41,ch:"地球",q:"マグマが地表や地表近くで急に冷やされてできた火成岩を【　】岩といい、斑晶と石基による【　】組織をもつ。",a:"火山 / 斑状"},
+  {id:42,ch:"地球",q:"マグマが地下深くでゆっくり冷やされてできた火成岩を【　】岩といい、【　】組織をもつ。",a:"深成 / 等粒状"},
+  {id:43,ch:"地球",q:"岩石が太陽の熱や水のはたらきで表面からくずれていくことを【　】という。",a:"風化"},
+  {id:44,ch:"地球",q:"水のはたらきでけずりとられることを【　】という。",a:"侵食"},
+  {id:45,ch:"地球",q:"れき、砂、泥などの砕せつ物は、流水により下流へ【　】され、水の流れがゆるやかになった海底などで【　】して地層をつくる。",a:"運搬 / 堆積"},
+  {id:46,ch:"地球",q:"離れた場所の地層を比べ、広がりを推測するときに利用する地層を【　】という。",a:"鍵層"},
+  {id:47,ch:"地球",q:"堆積した砕せつ物が長い年月の間に押し固められ、岩となったものを【　】という。",a:"堆積岩"},
+  {id:48,ch:"地球",q:"地層ができた当時の環境を推測できる化石を【　】、地層ができた時代を推定できる化石を【　】という。",a:"示相化石 / 示準化石"},
+  {id:49,ch:"地球",q:"地震や火山噴火の発生前から活用できる情報として【　】などがある。",a:"ハザードマップ"},
+  {id:50,ch:"物質",q:"「ガラス」や「プラスチック」のように材料でものを区別する場合は【　】という。",a:"物質"},
+  {id:51,ch:"物質",q:"【　】をふくむ物質を有機物といい、燃えると【　】を出す。",a:"炭素 / 二酸化炭素"},
+  {id:52,ch:"物質",q:"有機物以外の物質を【　】という。",a:"無機物"},
+  {id:53,ch:"物質",q:"金属に共通の性質：①電気をよく通す、②熱をよく伝える、③みがくと特有の光沢が出る（【　】）、④たたいて広げたり（【　】）、引きのばしたり（【　】）できる。",a:"金属光沢 / 展性 / 延性"},
+  {id:54,ch:"物質",q:"物質1 cm³あたりの質量を【　】という。単位は【　】を用いる。",a:"密度 / g/cm³"},
+  {id:55,ch:"物質",q:"密度の公式：密度＝【　】÷【　】",a:"質量（g） / 体積（cm³）"},
+  {id:56,ch:"物質",q:"液体の密度よりも密度が【　】物質は、その液体に浮く。",a:"小さい"},
+  {id:57,ch:"物質",q:"水にとけにくい気体は【　】で集める。",a:"水上置換法"},
+  {id:58,ch:"物質",q:"水にとけやすい気体のうち、密度が空気より小さいものは【　】で集め、大きいものは【　】で集める。",a:"上方置換法 / 下方置換法"},
+  {id:59,ch:"物質",q:"酸素は、二酸化マンガンに【　】を加えると発生する。ものを【　】はたらきがある。",a:"過酸化水素水 / 燃やす"},
+  {id:60,ch:"物質",q:"二酸化炭素は、石灰石にうすい【　】を加えると発生する。【　】を白くにごらせる。",a:"塩酸 / 石灰水"},
+  {id:61,ch:"物質",q:"水素は、亜鉛や鉄などの金属にうすい【　】を加えると発生する。火を近づけると音を立てて燃えて【　】ができる。",a:"塩酸 / 水"},
+  {id:62,ch:"物質",q:"窒素は、空気中に体積で約【　】%ふくまれている。",a:"78"},
+  {id:63,ch:"物質",q:"物質を水にとかしたとき、とけている物質を【　】、とかす液体を【　】、全体を【　】という。",a:"溶質 / 溶媒 / 溶液"},
+  {id:64,ch:"物質",q:"水に物質をとかす前ととかした後で、全体の質量は変化【　】。",a:"しない"},
+  {id:65,ch:"物質",q:"溶液の濃さを百分率で示したものを【　】という。公式は？",a:"質量パーセント濃度 / 溶質の質量÷溶液の質量×100"},
+  {id:66,ch:"物質",q:"溶質が限度までとけている状態を【　】といい、その水溶液を【　】という。",a:"飽和 / 飽和水溶液"},
+  {id:67,ch:"物質",q:"100 gの水に物質をとかして飽和水溶液にしたとき、とけた溶質の質量の値をその物質の【　】といい、物質の種類と温度によって決まる。",a:"溶解度"},
+  {id:68,ch:"物質",q:"水溶液を冷やすと、その物質特有の規則正しい形の固体が出てくる。これを【　】という。",a:"結晶"},
+  {id:69,ch:"物質",q:"固体の物質を水などの溶媒にとかして、再び結晶としてとり出す操作を【　】という。",a:"再結晶"},
+  {id:70,ch:"物質",q:"固体が混じっている液体から固体をとり出すには【　】を行う。",a:"ろ過"},
+  {id:71,ch:"物質",q:"物質が、固体・液体・気体の間で状態を変えることを【　】という。",a:"状態変化"},
+  {id:72,ch:"物質",q:"物質が状態変化すると、体積は変化するが【　】は変化しない。",a:"質量"},
+  {id:73,ch:"物質",q:"液体が沸騰して気体に変化するときの温度を【　】、固体がとけて液体に変化するときの温度を【　】という。",a:"沸点 / 融点"},
+  {id:74,ch:"物質",q:"液体を熱して沸騰させ、出てくる気体を冷やして再び液体をとり出す操作を【　】という。",a:"蒸留"},
+  {id:75,ch:"エネルギー",q:"太陽や電灯のようにみずから光を出す物体を【　】という。",a:"光源"},
+  {id:76,ch:"エネルギー",q:"鏡に入ってくる光を【　】、鏡の面に垂直に引いた線との間の角度を【　】という。",a:"入射光 / 入射角"},
+  {id:77,ch:"エネルギー",q:"反射して出ていく光を【　】、鏡の面に垂直に引いた線との間の角度を【　】という。",a:"反射光 / 反射角"},
+  {id:78,ch:"エネルギー",q:"入射角と反射角は【　】。これを光の【　】の法則という。",a:"等しい / 反射"},
+  {id:79,ch:"エネルギー",q:"物体の表面に細かい凹凸がある場合、光はさまざまな方向に反射する。これを【　】という。",a:"乱反射"},
+  {id:80,ch:"エネルギー",q:"異なる物質の境界へ進むとき、光は境界面で曲がる。これを光の【　】という。",a:"屈折"},
+  {id:81,ch:"エネルギー",q:"光が、水やガラスから空気へ進むとき、屈折する光がなくなりすべて反射するようになる。これを【　】という。",a:"全反射"},
+  {id:82,ch:"エネルギー",q:"光軸に平行に凸レンズに入った光は、屈折した後、反対側の【　】を通る。レンズの中心から焦点までの距離を【　】という。",a:"焦点 / 焦点距離"},
+  {id:83,ch:"エネルギー",q:"物体が焦点より外側にあるとき、スクリーンに上下・左右がともに逆向きの像が映る。この像を【　】という。",a:"実像"},
+  {id:84,ch:"エネルギー",q:"物体が焦点と凸レンズの間にあるとき、物体より大きい像が物体と同じ向きに見える。この像を【　】という。",a:"虚像"},
+  {id:85,ch:"エネルギー",q:"振動して音を出すものを【　】という。音は【　】としてすべての方向に伝わる。",a:"音源 / 波"},
+  {id:86,ch:"エネルギー",q:"音が聞こえるのは、音を出している物体の振動が、耳の中にある【　】に伝わるからである。",a:"鼓膜"},
+  {id:87,ch:"エネルギー",q:"音の速さの式：音の速さ（m/s）＝【　】÷【　】",a:"音が伝わる距離（m） / 音が伝わる時間（s）"},
+  {id:88,ch:"エネルギー",q:"弦をはじいたとき、その振れ幅を【　】という。弦が1秒間に振動する回数を【　】といい、【　】（記号Hz）という単位で表す。",a:"振幅 / 振動数 / ヘルツ"},
+  {id:89,ch:"エネルギー",q:"音源の振幅が大きいほど、音は【　】なる。音源の振動数が多いほど、音は【　】なる。",a:"大きく / 高く"},
+  {id:90,ch:"エネルギー",q:"力のはたらきには、物体を【　】させる、物体の【　】を変える、物体を【　】という3つがある。",a:"変形 / 動き / 支える"},
+  {id:91,ch:"エネルギー",q:"変形した物体がもとにもどろうとして生じる力を【　】という。",a:"弾性力（弾性の力）"},
+  {id:92,ch:"エネルギー",q:"地球や月などが物体を、その中心に向かって引く力を【　】という。物体にはたらく重力の大きさを【　】という。",a:"重力 / 重さ"},
+  {id:93,ch:"エネルギー",q:"力の大きさは【　】（記号N）という単位で表す。ばねののびはばねに加わる力の大きさに【　】する。これを【　】の法則という。",a:"ニュートン / 比例 / フック"},
+  {id:94,ch:"エネルギー",q:"1つの物体にはたらく2力がつり合うには、2力の大きさが【　】く、2力の向きが【　】で、2力が【　】にあるという3つの条件が必要。",a:"等し / 反対 / 一直線上"},
+  {id:95,ch:"エネルギー",q:"物体を動かすとき、物体が動こうとする向きと反対向きに、物体どうしがふれ合う面ではたらく力を【　】という。",a:"摩擦力"},
+  {id:96,ch:"エネルギー",q:"物体が面を押すとき、面から物体に対して垂直に、同じ大きさではたらく力を【　】という。",a:"垂直抗力"},
+];
+
+const SM2_EASE_DEFAULT = 2.5;
+let data = {};
+let queue = [];
+let current = 0;
+let mode = 'all';
+let filterCh = 'all';
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem('srs_v2');
+    if (saved) data = JSON.parse(saved);
+  } catch(e) {}
+  CARDS.forEach(c => {
+    if (!data[c.id]) data[c.id] = {rep:0, interval:0, ease:SM2_EASE_DEFAULT, due:0, correct:0, wrong:0};
+  });
+}
+
+function saveData() {
+  try { localStorage.setItem('srs_v2', JSON.stringify(data)); } catch(e) {}
+}
+
+function sm2(card, q) {
+  const d = data[card.id];
+  if (q < 3) {
+    d.rep = 0; d.interval = 1;
+  } else {
+    if (d.rep === 0) d.interval = 1;
+    else if (d.rep === 1) d.interval = 3;
+    else d.interval = Math.round(d.interval * d.ease);
+    d.rep += 1;
+    d.ease = Math.max(1.3, d.ease + 0.1 - (5-q)*(0.08+(5-q)*0.02));
+  }
+  d.due = Date.now() + d.interval * 86400000;
+  if (q >= 4) d.correct += 1; else d.wrong += 1;
+  saveData();
+}
+
+function getDueCards(ch) {
+  const now = Date.now();
+  return CARDS.filter(c => {
+    if (ch !== 'all' && c.ch !== ch) return false;
+    return data[c.id].due <= now;
+  });
+}
+
+function getAllCards(ch) {
+  return CARDS.filter(c => ch === 'all' || c.ch === ch);
+}
+
+function showHome() {
+  document.getElementById('home').style.display = 'block';
+  document.getElementById('study').style.display = 'none';
+  document.getElementById('stats').style.display = 'none';
+  updateHome();
+}
+
+function updateHome() {
+  filterCh = document.getElementById('chapter-select').value;
+  const due = getDueCards(filterCh);
+  const dueEl = document.getElementById('due-count');
+  dueEl.textContent = due.length > 0 ? `(${due.length}問)` : '(なし)';
+
+  const mini = document.getElementById('stats-mini');
+  const total = getAllCards(filterCh).length;
+  const learned = getAllCards(filterCh).filter(c => data[c.id].rep > 0).length;
+  const mastered = getAllCards(filterCh).filter(c => data[c.id].rep >= 3).length;
+  mini.innerHTML = `
+    <div style="background:var(--surface-1);border-radius:var(--radius);padding:0.75rem;text-align:center;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">全問題</div>
+      <div style="font-size:22px;font-weight:500;">${total}</div>
+    </div>
+    <div style="background:var(--surface-1);border-radius:var(--radius);padding:0.75rem;text-align:center;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">学習済み</div>
+      <div style="font-size:22px;font-weight:500;">${learned}</div>
+    </div>
+    <div style="background:var(--surface-1);border-radius:var(--radius);padding:0.75rem;text-align:center;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">マスター</div>
+      <div style="font-size:22px;font-weight:500;">${mastered}</div>
+    </div>`;
+}
+
+function startStudy(m) {
+  filterCh = document.getElementById('chapter-select').value;
+  mode = m;
+  queue = m === 'due' ? getDueCards(filterCh) : getAllCards(filterCh);
+  queue = queue.sort(() => Math.random() - 0.5);
+  if (queue.length === 0) { alert('問題がありません'); return; }
+  current = 0;
+  document.getElementById('home').style.display = 'none';
+  document.getElementById('study').style.display = 'block';
+  document.getElementById('stats').style.display = 'none';
+  showCard();
+}
+
+function showCard() {
+  if (current >= queue.length) { showFinish(); return; }
+  const card = queue[current];
+  const d = data[card.id];
+  const pct = Math.round(current / queue.length * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${current+1}/${queue.length}`;
+
+  const chColors = {生命:'color:var(--text-success);background:var(--bg-success);border-color:var(--border-success)',地球:'color:var(--text-accent);background:var(--bg-accent);border-color:var(--border-accent)',物質:'color:var(--text-warning);background:var(--bg-warning);border-color:var(--border-warning)',エネルギー:'color:var(--text-danger);background:var(--bg-danger);border-color:var(--border-danger)'};
+  const tagEl = document.getElementById('chapter-tag');
+  tagEl.textContent = card.ch;
+  tagEl.style.cssText = chColors[card.ch] || '';
+
+  const iEl = document.getElementById('interval-info');
+  iEl.textContent = d.rep > 0 ? `間隔 ${d.interval}日 | ${d.rep}回目` : '初めて';
+
+  document.getElementById('question-text').textContent = card.q;
+  document.getElementById('answer-text').textContent = card.a;
+  document.getElementById('show-answer-area').style.display = 'block';
+  document.getElementById('answer-area').style.display = 'none';
+}
+
+function revealAnswer() {
+  document.getElementById('show-answer-area').style.display = 'none';
+  document.getElementById('answer-area').style.display = 'block';
+}
+
+function rate(q) {
+  sm2(queue[current], q);
+  current++;
+  showCard();
+}
+
+function showFinish() {
+  document.getElementById('study').innerHTML = `
+    <div style="text-align:center;padding:2rem 1rem;">
+      <div style="font-size:32px;margin-bottom:1rem;"><i class="ti ti-trophy" style="font-size:48px;color:var(--text-warning);" aria-hidden="true"></i></div>
+      <div style="font-size:20px;font-weight:500;margin-bottom:0.5rem;">お疲れさまでした！</div>
+      <div style="color:var(--text-secondary);font-size:14px;margin-bottom:2rem;">${queue.length}問完了</div>
+      <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-lg" onclick="showHome()">ホームへ</button>
+        <button class="btn btn-lg" onclick="startStudy(mode)">もう一度</button>
+      </div>
+    </div>`;
+}
+
+function showStats() {
+  document.getElementById('home').style.display = 'none';
+  document.getElementById('study').style.display = 'none';
+  document.getElementById('stats').style.display = 'block';
+
+  const chapters = ['生命','地球','物質','エネルギー'];
+  let html = '';
+  chapters.forEach(ch => {
+    const cards = CARDS.filter(c => c.ch === ch);
+    const learned = cards.filter(c => data[c.id].rep > 0).length;
+    const mastered = cards.filter(c => data[c.id].rep >= 3).length;
+    const pct = Math.round(learned / cards.length * 100);
+    html += `
+      <div class="card" style="margin-bottom:0.75rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+          <span style="font-size:14px;font-weight:500;">${ch}</span>
+          <span style="font-size:12px;color:var(--text-muted);">${mastered}/${cards.length} マスター</span>
+        </div>
+        <div class="progress-bar" style="margin-bottom:4px;"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:11px;color:var(--text-muted);">学習済み ${learned}/${cards.length} (${pct}%)</div>
+      </div>`;
+  });
+  html += `<button class="btn" onclick="if(confirm('全データをリセットしますか？')){localStorage.removeItem('srs_v2');loadData();showHome();}" style="width:100%;margin-top:0.5rem;color:var(--text-danger);border-color:var(--border-danger);">データをリセット</button>`;
+  document.getElementById('stats-detail').innerHTML = html;
+}
+
+document.getElementById('chapter-select').addEventListener('change', updateHome);
+loadData();
+showHome();
+</script>
